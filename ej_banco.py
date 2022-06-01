@@ -17,7 +17,7 @@ class AppBD:
             print(e)
         return self.conn
 
-    def dql(self, query):  # select
+    def dql(self, query):  # pesquisar
         vcon = self.abrir_conexao()
         c = vcon.cursor()
         c.execute(query)
@@ -25,7 +25,7 @@ class AppBD:
         vcon.close()
         return res
 
-    def dml(self, query, d1, d2, d3):  # inserir, atualizar, deletar
+    def dml(self, query, d1, d2, d3):  # inserir, atualizar
         try:
             vcon = self.abrir_conexao()
             c = vcon.cursor()
@@ -34,8 +34,9 @@ class AppBD:
             vcon.close()
         except Error as e:
             print(e)
+        return True
 
-    def excluir(self, query, d):
+    def excluir(self, query, d):  # deletar
         try:
             vcon = self.abrir_conexao()
             c = vcon.cursor()
@@ -45,6 +46,7 @@ class AppBD:
         except Error as e:
             print(e)
 
+#
 # def criar_tabela(conexao, sql):
 #     try:
 #         c = conexao.cursor()
@@ -55,9 +57,9 @@ class AppBD:
 #
 #
 # vsql = """
-#     CREATE TABLE tb_produtos(
+#     CREATE TABLE tb_ej_produtos(
 #         N_IDPRODUTO INTEGER PRIMARY KEY AUTOINCREMENT,
-#         T_CODIGOPRODUTO TEXT(10) UNIQUE,
+#         I_CODIGOPRODUTO INT(10) UNIQUE,
 #         T_NOMEPRODUTO VARCHAR(30),
 #         F_PRECOPRODUTO FLOAT
 #     );

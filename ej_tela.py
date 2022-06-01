@@ -24,15 +24,11 @@ V4.0 - Limpando os campos de digitação de atualizar e pesquisar.
      - Removendo espaços em branco do código e preço de Inserir e Atualizar produtos
      - Correção Bug ao atualizar campo nome
 
+V5.0 - Correção para impedir que a adição de produtos com mesmos códigos
+     - Adicionado opção de ordenação
 
-     AVISAR QUE PRODUTO NÃO FOI DELETADO,
-     TRATAR PARA NAO REPETIR CAMPO CÓDIGOS
 
-     ALTERAR ORDEM DE PESQUISAR PRODUTOS:
-     Por Id [    ]    Por Código [    ]   Por nome [      ]
-
-     CRIAR SUBTITULO ORDENAÇÃO
-     [ORDERNAR POR ID] [ORDERNADOR POR CODIGO] [ORDERNAR POR NOME] [MOSTRAR TODOS]
+     ORDENAR POR CHECKBOX
 """
 
 from ej_banco import AppBD
@@ -44,6 +40,18 @@ from tkinter import messagebox
 from sqlite3 import Error
 import re
 import unicodedata
+
+
+def verifica_nome(n):
+    if n == "":
+        return False
+    try:
+        int(n)
+        return True
+    except ValueError as e:
+        if n[0].isdigit():
+            return True
+        return False
 
 
 def removerAcentosECaracteresEspeciais(palavra):
@@ -69,7 +77,7 @@ class JanelaPrincipal:
     def __init__(self, janela):
         self.objBD = AppBD()
 
-        ############ TreeView
+        ############ Tela TreeView
 
         quadro_grid = LabelFrame(app, text='Produtos')
         quadro_grid.configure(font=("Courier", 10, "italic"))
@@ -93,9 +101,9 @@ class JanelaPrincipal:
         self.scroll.config(command=self.tv.yview)
 
         self.tv.pack()
-        self.popular()
+        self.popular(1)
 
-        ############ INSERIR
+        ############ Tela INSERIR
 
         quadro_inserir = LabelFrame(app, text='Inserir Novos Produtos')
         quadro_inserir.configure(font=("Courier", 10, "italic"))
@@ -117,7 +125,7 @@ class JanelaPrincipal:
         btn_inserir = Button(quadro_inserir, text='Inserir', command=self.inserir, width=12, height=2)
         btn_inserir.pack(side='right', padx=10)
 
-        ############ ATUALIZAR
+        ############ Tela ATUALIZAR
 
         quadro_att = LabelFrame(app, text='Atualizar Produtos')
         quadro_att.configure(font=("Courier", 10, "italic"))
@@ -143,7 +151,7 @@ class JanelaPrincipal:
         btn_att = Button(quadro_att, text='Atualizar', command=self.atualizar, width=12, height=2)
         btn_att.pack(side='right', padx=10)
 
-        ############ PESQUISAR
+        ############ Tela PESQUISAR
 
         quadro_pesquisar = LabelFrame(app, text='Pesquisar Produtos')
         quadro_pesquisar.configure(font=("Courier", 10, "italic"))
@@ -168,10 +176,29 @@ class JanelaPrincipal:
                                height=1)
         btn_pesquisar.pack(side='left', padx=10)
 
-        btn_mostrar_todos = Button(quadro_pesquisar, text='Mostrar Todos', command=self.popular, width=12, height=2)
+        btn_mostrar_todos = Button(quadro_pesquisar, text='Mostrar Todos', command=lambda: self.popular(1), width=12,
+                                   height=2)
         btn_mostrar_todos.pack(side='right', padx=10)
 
-        ############ DELETAR
+        ############ Tela Ordenação
+
+        quadro_ord = LabelFrame(app, text='Ordenação Produtos')
+        quadro_ord.configure(font=("Courier", 10, "italic"))
+        quadro_ord.pack(fill='both', expand='yes', padx=10, pady=10, ipady=9)
+
+        btn_ord_id = Button(quadro_ord, text='Por Id', command=lambda: self.popular(2), width=10, height=1)
+        btn_ord_id.pack(side='left', padx=57)
+
+        btn_ord_cod = Button(quadro_ord, text='Por Código', command=lambda: self.popular(1), width=10, height=1)
+        btn_ord_cod.pack(side='left', padx=57)
+
+        btn_ord_nome = Button(quadro_ord, text='Por Nome', command=lambda: self.popular(3), width=10, height=1)
+        btn_ord_nome.pack(side='left', padx=57)
+
+        btn_ord_preco = Button(quadro_ord, text='Por Preço', command=lambda: self.popular(4), width=10, height=1)
+        btn_ord_preco.pack(side='left', padx=57)
+
+        ############ Tela DELETAR
 
         quadro_deletar = LabelFrame(app, text='Deletar Produtos')
         quadro_deletar.configure(font=("Courier", 10, "italic"))
@@ -198,7 +225,7 @@ class JanelaPrincipal:
                                  height=2)
         btn_deletar_cod.pack(side='right', padx=10)
 
-        ############ INFO
+        ############ Tela INFO
 
         quadro_info = LabelFrame(app, text='Info')
         quadro_info.configure(font=("Courier", 10, "italic"))
@@ -212,35 +239,26 @@ class JanelaPrincipal:
 
     ############ POPULANDO A TREE VIEW
 
-    def popular(self):
+    def popular(self, t):
         self.tv.delete(*self.tv.get_children())
-        v_query = "SELECT * FROM tb_produtos order by N_IDPRODUTO"
-        linhas = self.objBD.dql(v_query)  # dql(v_query)
+        if t == 1:
+            v_query = "SELECT * FROM tb_ej_produtos order by I_CODIGOPRODUTO"
+            linhas = self.objBD.dql(v_query)
+
+        if t == 2:
+            v_query = "SELECT * FROM tb_ej_produtos order by N_IDPRODUTO"
+            linhas = self.objBD.dql(v_query)
+
+        if t == 3:
+            v_query = "SELECT * FROM tb_ej_produtos order by T_NOMEPRODUTO"
+            linhas = self.objBD.dql(v_query)
+
+        if t == 4:
+            v_query = "SELECT * FROM tb_ej_produtos order by F_PRECOPRODUTO"
+            linhas = self.objBD.dql(v_query)
 
         for i in linhas:
             self.tv.insert("", "end", values=i)
-
-    ############ FORMATAÇÃO
-
-    def verifica_nome(self, t):
-        if t == 1:
-            try:
-                int(self.v_nome.get())
-                return True
-            except ValueError as e:
-                if self.v_nome.get()[0].isdigit():
-                    return True
-                return False
-        if t == 2:
-            if self.v_nome_att.get() == "":
-                return False
-            try:
-                int(self.v_nome_att.get())
-                return True
-            except ValueError as e:
-                if self.v_nome_att.get()[0].isdigit():
-                    return True
-                return False
 
     ############ CRUD INSERIR
 
@@ -249,25 +267,33 @@ class JanelaPrincipal:
             messagebox.showinfo(title='ERRO', message="Digite todos os dados.")
             return
 
-        if self.verifica_nome(1):
+        if verifica_nome(self.v_nome.get()):
             messagebox.showinfo(title='ERRO',
                                 message='Nome inválido. \n\nSobre campo "Nome":\n\n- Não pode conter somente números.\n- Não pode iniciar com caracter numérico.\n- Caracteres especiais serão removidos automaticamente.')
             return
 
         nome = self.v_nome.get()
         nome = removerAcentosECaracteresEspeciais(nome).title()
+
+        if nome == "":
+            messagebox.showinfo(title='ERRO',
+                                message='Nome inválido. O nome não deve possuir caracteres especiais.')
+            return
+
         codigo = self.v_codigo.get().replace(" ", "")
         preco = self.v_preco.get().replace(" ", "")
 
-        try:
-            v_query = f"INSERT INTO tb_produtos " \
-                      f"(T_CODIGOPRODUTO, T_NOMEPRODUTO, F_PRECOPRODUTO) " \
-                      f"VALUES (?, ?, ?)"
-            self.objBD.dml(v_query, int(codigo), nome, float(preco))
+        if self.consulta(codigo):
+            return
 
+        try:
+            v_query = f"INSERT INTO tb_ej_produtos " \
+                      f"(I_CODIGOPRODUTO, T_NOMEPRODUTO, F_PRECOPRODUTO) " \
+                      f"VALUES (?, ?, ?)"
+            self.objBD.dml(v_query, codigo, nome, float(preco))
+
+            self.popular(1)
             messagebox.showinfo(title='CONCLUÍDO', message=f'O produto {nome} foi adicionado com sucesso.')
-        except sqlite3.IntegrityError as e:
-            print('erro inter')
         except Error as e:
             messagebox.showinfo(title='ERRO', message=f'Erro ao inserir. Erro -> {e}')
             return
@@ -276,7 +302,6 @@ class JanelaPrincipal:
                                 message=f'Os valores de código e/ou preço precisam ser NUMÉRICOS.')
             return
 
-        self.popular()
         self.v_codigo.delete(0, END)
         self.v_nome.delete(0, END)
         self.v_preco.delete(0, END)
@@ -287,7 +312,7 @@ class JanelaPrincipal:
     def atualizar(self):
         try:
             vid = self.v_id_att.get()
-            r = self.objBD.dql(f"SELECT * FROM tb_produtos WHERE N_IDPRODUTO={vid}")
+            r = self.objBD.dql(f"SELECT * FROM tb_ej_produtos WHERE N_IDPRODUTO={vid}")
             rcodigo = int(r[0][1])
             rnome = r[0][2]
             rpreco = float(r[0][3])
@@ -315,15 +340,23 @@ class JanelaPrincipal:
 
         vnome = removerAcentosECaracteresEspeciais(vnome).title()
 
-        if self.verifica_nome(2):
+        if verifica_nome(self.v_nome_att.get()):
             messagebox.showinfo(title='ERRO',
-                                message='Nome inválido. \n\nSobre campo "Nome":\n\n- Não pode conter somente números.\n- Não pode iniciar com caracter numérico.\n- Caracteres especiais serão removidos automaticamente.')
+                                message='Nome inválido. \n\nSobre campo "Nome":\n\n- Não pode conter somente números.'
+                                        '\n- Não pode iniciar com caracter numérico.'
+                                        '\n- Caracteres especiais serão removidos automaticamente.')
+            return
+        if vnome == "":
+            messagebox.showinfo(title='ERRO',
+                                message='Nome inválido. O nome não deve possuir caracteres especiais.')
             return
 
         try:
-            v_query = f"UPDATE tb_produtos SET T_CODIGOPRODUTO=?, T_NOMEPRODUTO=?, F_PRECOPRODUTO=? WHERE N_IDPRODUTO={vid}"
+            v_query = f"UPDATE " \
+                      f"tb_ej_produtos SET I_CODIGOPRODUTO=?, T_NOMEPRODUTO=?, F_PRECOPRODUTO=? WHERE N_IDPRODUTO={vid}"
             self.objBD.dml(v_query, int(vcodigo), vnome, float(vpreco))
 
+            self.popular(1)
             messagebox.showinfo(title='CONCLUÍDO',
                                 message=f'O produto de id {self.v_id_att.get()} foi atualizado com sucesso.')
         except ValueError as e:
@@ -338,7 +371,6 @@ class JanelaPrincipal:
         self.v_nome_att.delete(0, END)
         self.v_preco_att.delete(0, END)
         self.v_id_att.focus()
-        self.popular()
         return
 
     ############ CRUD PESQUISAR
@@ -347,14 +379,14 @@ class JanelaPrincipal:
         self.tv.delete(*self.tv.get_children())
 
         if t == 1:
-            v_query = F"SELECT * FROM tb_produtos WHERE T_NOMEPRODUTO LIKE '%{self.v_nome_pesquisar.get()}%'"
+            v_query = F"SELECT * FROM tb_ej_produtos WHERE T_NOMEPRODUTO LIKE '%{self.v_nome_pesquisar.get()}%'"
             linhas = self.objBD.dql(v_query)
             for i in linhas:
                 self.tv.insert("", "end", values=i)
             self.v_nome_pesquisar.delete(0, END)
 
         if t == 2:
-            v_query = F"SELECT * FROM tb_produtos WHERE T_CODIGOPRODUTO LIKE '%{self.v_cod_pesquisar.get()}%'"
+            v_query = F"SELECT * FROM tb_ej_produtos WHERE I_CODIGOPRODUTO LIKE '%{self.v_cod_pesquisar.get()}%'"
             linhas = self.objBD.dql(v_query, )
             for i in linhas:
                 self.tv.insert("", "end", values=i)
@@ -372,13 +404,12 @@ class JanelaPrincipal:
             try:
                 res = messagebox.askyesno('ATENÇÃO', f'Tem certeza de que deseja deletar o produto de ID {ve_id} ?')
                 if res:
-                    v_query = f"DELETE FROM tb_produtos WHERE N_IDPRODUTO=? "
+                    v_query = f"DELETE FROM tb_ej_produtos WHERE N_IDPRODUTO=? "
                     self.objBD.excluir(v_query, ve_id)
 
-                    messagebox.showinfo(title='CONCLUÍDO', message=f'O produto de ID {ve_id} foi deletado com sucesso.')
+                    self.popular(1)
             except Error as e:
                 messagebox.showinfo(title='ERRO', message=f'Erro ao deletar. Error -> {e}')
-            self.popular()
             self.v_id_del.delete(0, END)
 
         if t == 2:
@@ -390,38 +421,52 @@ class JanelaPrincipal:
                 res = messagebox.askyesno('ATENÇÃO',
                                           f'Tem certeza de que deseja deletar o produto de código {ve_cod} ?')
                 if res:
-                    v_query = f"DELETE FROM tb_produtos WHERE T_CODIGOPRODUTO=? "
+                    v_query = f"DELETE FROM tb_ej_produtos WHERE I_CODIGOPRODUTO=? "
                     self.objBD.excluir(v_query, ve_cod)
 
-                    messagebox.showinfo(title='CONCLUÍDO',
-                                        message=f'O produto de ID {ve_cod} foi deletado com sucesso.')
+                    self.popular(1)
 
             except Error as e:
                 messagebox.showinfo(title='ERRO', message=f'Erro ao deletar. Error -> {e}')
-            self.popular()
             self.v_cod_del.delete(0, END)
 
         if t == 3:
             try:
                 res = messagebox.askyesno('ATENÇÃO', 'Tem certeza de que deseja deletar TODOS os produtos ?')
                 if res:
-                    v_query = f"DELETE FROM tb_produtos"
+                    v_query = f"DELETE FROM tb_ej_produtos"
                     conn = self.objBD.abrir_conexao()
                     cursor = conn.cursor()
                     cursor.execute(v_query)
                     conn.commit()
 
+                    self.popular(1)
                     messagebox.showinfo(title='CONCLUÍDO', message='TODOS os produtos foram deletados.')
             except Error as e:
                 messagebox.showinfo(title='ERRO', message=f'Erro ao deletar todos. Error -> {e}')
                 return
-            self.popular()
         return
+
+    ##### CONSULTA
+
+    def consulta(self, v):
+        r = self.objBD.dql(f"SELECT * FROM tb_ej_produtos")
+        r_tam = len(r)
+        lista_c = []
+
+        for i in range(r_tam):
+            lista_c.append(r[i][1])
+        v = int(v)
+        if v in lista_c:
+            messagebox.showinfo(title='ERRO',
+                                message=f'Já existe um produto com o código {v} nesta lista.')
+            return True
+        return False
 
 
 if __name__ == '__main__':
     app = Tk()
     janela_principal = JanelaPrincipal(app)
-    app.title('EJ Cadastros (v4.0)')
-    app.geometry('820x720')
+    app.title('EJ Cadastros (v5.0)')
+    app.geometry('820x780')
     app.mainloop()
