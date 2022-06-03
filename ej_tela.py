@@ -25,10 +25,8 @@ V4.0 - Limpando os campos de digitação de atualizar e pesquisar.
      - Correção Bug ao atualizar campo nome
 
 V5.0 - Correção para impedir que a adição de produtos com mesmos códigos
-     - Adicionado opção de ordenação
-
-
-     ORDENAR POR CHECKBOX
+     - Se o cliente adicionar um código já existente, o mesmo será substituído na lista.
+     - Adicionado opção de checkbox para a ordenação
 """
 
 from ej_banco import AppBD
@@ -101,7 +99,7 @@ class JanelaPrincipal:
         self.scroll.config(command=self.tv.yview)
 
         self.tv.pack()
-        self.popular(1)
+        self.popular()
 
         ############ Tela INSERIR
 
@@ -157,16 +155,13 @@ class JanelaPrincipal:
         quadro_pesquisar.configure(font=("Courier", 10, "italic"))
         quadro_pesquisar.pack(fill='both', expand='yes', padx=10, pady=10)
 
-        lb_nome_pesquisar = Label(quadro_pesquisar, text='Por nome:')
+        lb_nome_pesquisar = Label(quadro_pesquisar, text='Por nome:', width=8)
         lb_nome_pesquisar.pack(side='left', padx=4)
         self.v_nome_pesquisar = Entry(quadro_pesquisar)
-        self.v_nome_pesquisar.pack(side='left', padx=2)
+        self.v_nome_pesquisar.pack(side='left')
         btn_pesquisar = Button(quadro_pesquisar, text='Pesquisar', command=lambda: self.pesquisar(1), width=7,
                                height=1)
-        btn_pesquisar.pack(side='left', padx=20)
-
-        lb_esp = Label(quadro_pesquisar, text='')
-        lb_esp.pack(side='left', padx=10)
+        btn_pesquisar.pack(side='left', padx=12)
 
         lb_cod_pesquisar = Label(quadro_pesquisar, text='Por código:')
         lb_cod_pesquisar.pack(side='left')
@@ -176,27 +171,20 @@ class JanelaPrincipal:
                                height=1)
         btn_pesquisar.pack(side='left', padx=10)
 
-        btn_mostrar_todos = Button(quadro_pesquisar, text='Mostrar Todos', command=lambda: self.popular(1), width=12,
+        btn_mostrar_todos = Button(quadro_pesquisar, text='Mostrar todos', command=self.popular_tv, width=12,
                                    height=2)
         btn_mostrar_todos.pack(side='right', padx=10)
 
-        ############ Tela Ordenação
+        lb_nome_esp = Label(quadro_pesquisar, text='', width=3)
+        lb_nome_esp.pack(side='left')
 
-        quadro_ord = LabelFrame(app, text='Ordenação Produtos')
-        quadro_ord.configure(font=("Courier", 10, "italic"))
-        quadro_ord.pack(fill='both', expand='yes', padx=10, pady=10, ipady=9)
+        lb_nome_ordenar = Label(quadro_pesquisar, text='Ordenar por:', width=14)
+        lb_nome_ordenar.pack(side='left')
+        lista_ordenar = ['Id', 'Código', 'Nome', 'Preço']
 
-        btn_ord_id = Button(quadro_ord, text='Por Id', command=lambda: self.popular(2), width=10, height=1)
-        btn_ord_id.pack(side='left', padx=57)
-
-        btn_ord_cod = Button(quadro_ord, text='Por Código', command=lambda: self.popular(1), width=10, height=1)
-        btn_ord_cod.pack(side='left', padx=57)
-
-        btn_ord_nome = Button(quadro_ord, text='Por Nome', command=lambda: self.popular(3), width=10, height=1)
-        btn_ord_nome.pack(side='left', padx=57)
-
-        btn_ord_preco = Button(quadro_ord, text='Por Preço', command=lambda: self.popular(4), width=10, height=1)
-        btn_ord_preco.pack(side='left', padx=57)
+        self.cb_lista = ttk.Combobox(quadro_pesquisar, values=lista_ordenar, width=9)
+        self.cb_lista.set("Id")  # definindo a primeira opção a vir marcada
+        self.cb_lista.pack(side='right', padx=3)
 
         ############ Tela DELETAR
 
@@ -239,21 +227,31 @@ class JanelaPrincipal:
 
     ############ POPULANDO A TREE VIEW
 
-    def popular(self, t):
+    def popular(self):  # AQUI
         self.tv.delete(*self.tv.get_children())
-        if t == 1:
-            v_query = "SELECT * FROM tb_ej_produtos order by I_CODIGOPRODUTO"
-            linhas = self.objBD.dql(v_query)
+        v_query = "SELECT * FROM tb_ej_produtos order by I_CODIGOPRODUTO"
+        linhas = self.objBD.dql(v_query)
 
-        if t == 2:
+        for i in linhas:
+            self.tv.insert("", "end", values=i)
+
+    ############ POPULANDO A TREE VIEW COM CHECK BOX
+
+    def popular_tv(self):  # AQUI
+        self.tv.delete(*self.tv.get_children())
+
+        ve = self.cb_lista.get()
+
+        if ve == 'Id':
             v_query = "SELECT * FROM tb_ej_produtos order by N_IDPRODUTO"
             linhas = self.objBD.dql(v_query)
-
-        if t == 3:
+        if ve == 'Código':
+            v_query = "SELECT * FROM tb_ej_produtos order by I_CODIGOPRODUTO"
+            linhas = self.objBD.dql(v_query)
+        if ve == 'Nome':
             v_query = "SELECT * FROM tb_ej_produtos order by T_NOMEPRODUTO"
             linhas = self.objBD.dql(v_query)
-
-        if t == 4:
+        if ve == 'Preço':
             v_query = "SELECT * FROM tb_ej_produtos order by F_PRECOPRODUTO"
             linhas = self.objBD.dql(v_query)
 
@@ -283,16 +281,13 @@ class JanelaPrincipal:
         codigo = self.v_codigo.get().replace(" ", "")
         preco = self.v_preco.get().replace(" ", "")
 
-        if self.consulta(codigo):
-            return
-
         try:
-            v_query = f"INSERT INTO tb_ej_produtos " \
+            v_query = f"INSERT or REPLACE INTO tb_ej_produtos " \
                       f"(I_CODIGOPRODUTO, T_NOMEPRODUTO, F_PRECOPRODUTO) " \
                       f"VALUES (?, ?, ?)"
             self.objBD.dml(v_query, codigo, nome, float(preco))
 
-            self.popular(1)
+            self.popular()
             messagebox.showinfo(title='CONCLUÍDO', message=f'O produto {nome} foi adicionado com sucesso.')
         except Error as e:
             messagebox.showinfo(title='ERRO', message=f'Erro ao inserir. Erro -> {e}')
@@ -356,7 +351,7 @@ class JanelaPrincipal:
                       f"tb_ej_produtos SET I_CODIGOPRODUTO=?, T_NOMEPRODUTO=?, F_PRECOPRODUTO=? WHERE N_IDPRODUTO={vid}"
             self.objBD.dml(v_query, int(vcodigo), vnome, float(vpreco))
 
-            self.popular(1)
+            self.popular()
             messagebox.showinfo(title='CONCLUÍDO',
                                 message=f'O produto de id {self.v_id_att.get()} foi atualizado com sucesso.')
         except ValueError as e:
@@ -407,7 +402,7 @@ class JanelaPrincipal:
                     v_query = f"DELETE FROM tb_ej_produtos WHERE N_IDPRODUTO=? "
                     self.objBD.excluir(v_query, ve_id)
 
-                    self.popular(1)
+                    self.popular()
             except Error as e:
                 messagebox.showinfo(title='ERRO', message=f'Erro ao deletar. Error -> {e}')
             self.v_id_del.delete(0, END)
@@ -424,7 +419,7 @@ class JanelaPrincipal:
                     v_query = f"DELETE FROM tb_ej_produtos WHERE I_CODIGOPRODUTO=? "
                     self.objBD.excluir(v_query, ve_cod)
 
-                    self.popular(1)
+                    self.popular()
 
             except Error as e:
                 messagebox.showinfo(title='ERRO', message=f'Erro ao deletar. Error -> {e}')
@@ -440,33 +435,33 @@ class JanelaPrincipal:
                     cursor.execute(v_query)
                     conn.commit()
 
-                    self.popular(1)
+                    self.popular()
                     messagebox.showinfo(title='CONCLUÍDO', message='TODOS os produtos foram deletados.')
             except Error as e:
                 messagebox.showinfo(title='ERRO', message=f'Erro ao deletar todos. Error -> {e}')
                 return
         return
 
-    ##### CONSULTA
-
-    def consulta(self, v):
-        r = self.objBD.dql(f"SELECT * FROM tb_ej_produtos")
-        r_tam = len(r)
-        lista_c = []
-
-        for i in range(r_tam):
-            lista_c.append(r[i][1])
-        v = int(v)
-        if v in lista_c:
-            messagebox.showinfo(title='ERRO',
-                                message=f'Já existe um produto com o código {v} nesta lista.')
-            return True
-        return False
-
 
 if __name__ == '__main__':
     app = Tk()
     janela_principal = JanelaPrincipal(app)
     app.title('EJ Cadastros (v5.0)')
-    app.geometry('820x780')
+    app.geometry('820x710')
     app.mainloop()
+
+    # ##### CONSULTA
+    #
+    # def consulta(self, v):
+    #     r = self.objBD.dql(f"SELECT * FROM tb_ej_produtos")
+    #     r_tam = len(r)
+    #     lista_c = []
+    #
+    #     for i in range(r_tam):
+    #         lista_c.append(r[i][1])
+    #     v = int(v)
+    #     if v in lista_c:
+    #         messagebox.showinfo(title='ERRO',
+    #                             message=f'Já existe um produto com o código {v} nesta lista.')
+    #         return True
+    #     return False
